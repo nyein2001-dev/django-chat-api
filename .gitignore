@@ -1,0 +1,36 @@
+# Byte-compiled / cached
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+venv/
+env/
+*.env
+*.venv
+Pipfile
+Pipfile.lock
+
+# Django-related
+db.sqlite3
+media/
+staticfiles/
+
+# Logs and debug files
+*.log
+*.pot
+*.pyc
+*.pyo
+*.sqlite3
+.DS_Store
+
+# IDE/editor settings
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Secrets and configs
+config/settings/local.py
+config/.env
+.env
