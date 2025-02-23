@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import User
+from .models import User, Participant, Message, Conversation
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 
@@ -159,4 +159,62 @@ class UserSerializer(serializers.ModelSerializer):
             "status",
             "last_seen_at",
             "is_verified",
+        ]
+
+
+class ParticipantSerializer(serializers.ModelSerializer):
+    user = UserSerializer(read_only=True)
+
+    class Meta:
+        model = Participant
+        fields = [
+            "id",
+            "conversation",
+            "user",
+            "role",
+            "nickname",
+            "last_read_message",
+            "is_muted",
+            "joined_at",
+        ]
+
+
+class MessageSerializer(serializers.ModelSerializer):
+    sender = UserSerializer(read_only=True)
+
+    class Meta:
+        model = Message
+        fields = [
+            "id",
+            "conversation",
+            "sender",
+            "reply_to",
+            "type",
+            "content",
+            "metadata",
+            "is_edited",
+            "delivered_at",
+            "read_by",
+            "reactions",
+            "created_at",
+        ]
+        read_only_fields = ["sender", "delivered_at", "read_by"]
+
+class ConversationSerializer(serializers.ModelSerializer):
+    participants = ParticipantSerializer(many=True, read_only=True)
+    last_message = MessageSerializer(read_only=True)
+
+    class Meta:
+        model = Conversation
+        fields = [
+            "id",
+            "type",
+            "title",
+            "description",
+            "avatar_url",
+            "creator",
+            "participants",
+            "last_message",
+            "last_activity_at",
+            "created_at",
         ]
