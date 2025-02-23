@@ -144,14 +144,6 @@ class ConversationViewSet(viewsets.ModelViewSet):
         )
 
     @extend_schema(
-        parameters=[
-            OpenApiParameter(
-                name="pk",
-                type=OpenApiTypes.INT,
-                location=OpenApiParameter.PATH,
-                description="Conversation ID",
-            )
-        ],
         request={
             "application/json": {
                 "type": "object",
@@ -259,20 +251,6 @@ class ConversationViewSet(viewsets.ModelViewSet):
         return super().create(request, *args, **kwargs)
 
     @extend_schema(
-        parameters=[
-            OpenApiParameter(
-                name="pk",
-                type=OpenApiTypes.INT,
-                location=OpenApiParameter.PATH,
-                description="Conversation ID",
-            ),
-            OpenApiParameter(
-                name="user_id",
-                type=OpenApiTypes.INT,
-                location=OpenApiParameter.QUERY,
-                description="User ID to add to the conversation (can be provided in query or body)",
-            ),
-        ],
         request={
             "application/json": {
                 "type": "object",
