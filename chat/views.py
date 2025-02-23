@@ -4,9 +4,10 @@ from rest_framework.response import Response
 from rest_framework import status, permissions
 from django.http import JsonResponse
 from django.middleware.csrf import get_token
-from drf_spectacular.utils import extend_schema, OpenApiExample
+from drf_spectacular.utils import extend_schema, OpenApiExample, OpenApiTypes
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.utils import timezone
+import logging
 
 from chat.serializers import RegisterSerializer, UserDetailSerializer, LoginSerializer
 
@@ -65,59 +66,41 @@ class LoginView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-from rest_framework.views import APIView
-from rest_framework import permissions, status
-from rest_framework.response import Response
-from rest_framework_simplejwt.tokens import RefreshToken, TokenError
-from django.utils import timezone
-import logging
-
-logger = logging.getLogger(__name__)
-
-
 class LogoutView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
+    @extend_schema(
+        summary="Logout user",
+        description="Logs out the authenticated user by blacklisting the refresh token and updating user status.",
+        request=OpenApiTypes.OBJECT,
+        responses={200: OpenApiTypes.OBJECT, 400: OpenApiTypes.OBJECT},
+        examples=[
+            OpenApiExample(
+                "Successful Logout",
+                description="User logs out successfully.",
+                value={"message": "Successfully logged out"},
+                response_only=True,
+                status_codes=["200"],
+            ),
+            OpenApiExample(
+                "Invalid Request",
+                description="Invalid or missing refresh token.",
+                value={"detail": "Invalid token"},
+                response_only=True,
+                status_codes=["400"],
+            ),
+        ],
+    )
     def post(self, request):
         try:
-            refresh_token = request.data.get("refresh_token")
-            if not refresh_token:
-                return Response(
-                    {"error": "Refresh token is required"},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
+            refresh_token = request.data["refresh"]
+            token = RefreshToken(refresh_token)
+            token.blacklist()
 
-            try:
-                token = RefreshToken(refresh_token)
-                token.blacklist()
-            except TokenError as e:
-                logger.warning(f"Token blacklist failed: {str(e)}")
-                return Response(
-                    {"error": "Invalid or expired refresh token"},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
+            request.user.status = "offline"
+            request.user.last_seen_at = timezone.now()
+            request.user.save()
 
-            try:
-                request.user.status = "offline"
-                request.user.last_seen_at = timezone.now()
-                request.user.save()
-            except Exception as e:
-                logger.error(f"Failed to update user status: {str(e)}")
-                return Response(
-                    {
-                        "message": "Logged out successfully",
-                        "warning": "Failed to update user status",
-                    },
-                    status=status.HTTP_200_OK,
-                )
-
-            return Response(
-                {"message": "Successfully logged out"}, status=status.HTTP_200_OK
-            )
-
-        except Exception as e:
-            logger.error(f"Logout failed: {str(e)}")
-            return Response(
-                {"error": "An unexpected error occurred during logout"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
+            return Response({"message": "Successfully logged out"})
+        except Exception:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
