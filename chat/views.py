@@ -11,7 +11,7 @@ from drf_spectacular.utils import (
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.utils import timezone
 from rest_framework import viewsets
-from .models import User, Conversation, Participant
+from .models import User, Conversation, Participant, Message
 from rest_framework.decorators import action
 
 from chat.serializers import (
@@ -20,6 +20,7 @@ from chat.serializers import (
     LoginSerializer,
     UserSerializer,
     ConversationSerializer,
+    MessageSerializer,
 )
 
 
@@ -373,3 +374,122 @@ class ConversationViewSet(viewsets.ModelViewSet):
     )
     def destroy(self, request, *args, **kwargs):
         return super().destroy(request, *args, **kwargs)
+
+
+class MessageViewSet(viewsets.ModelViewSet):
+    serializer_class = MessageSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    lookup_field = "pk"
+    lookup_url_kwarg = "pk"
+
+    def get_queryset(self):
+        conversation_id = self.request.query_params.get("conversation")
+        queryset = Message.objects.filter(
+            conversation__participants__user=self.request.user
+        )
+        if conversation_id:
+            queryset = queryset.filter(conversation_id=conversation_id)
+        return queryset.order_by("created_at")
+
+    def perform_create(self, serializer):
+        serializer.save(sender=self.request.user)
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                name="conversation",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="Filter messages by conversation ID",
+            )
+        ],
+        responses={200: MessageSerializer(many=True)},
+        description="List messages, optionally filtered by conversation",
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                name="pk",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.PATH,
+                required=True,
+                description="Message ID",
+            )
+        ],
+        responses={200: MessageSerializer},
+        description="Retrieve a specific message",
+    )
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                name="pk",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.PATH,
+                description="Message ID",
+            )
+        ],
+        request=MessageSerializer,
+        responses={200: MessageSerializer},
+        description="Update a message",
+    )
+    def update(self, request, *args, **kwargs):
+        return super().update(request, *args, **kwargs)
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                name="pk",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.PATH,
+                description="Message ID",
+            )
+        ],
+        request=MessageSerializer,
+        responses={200: MessageSerializer},
+        description="Partially update a message",
+    )
+    def partial_update(self, request, *args, **kwargs):
+        return super().partial_update(request, *args, **kwargs)
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                name="pk",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.PATH,
+                description="Message ID",
+            )
+        ],
+        responses={204: None},
+        description="Delete a message",
+    )
+    def destroy(self, request, *args, **kwargs):
+        return super().destroy(request, *args, **kwargs)
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                name="pk",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.PATH,
+                description="Message ID",
+            )
+        ],
+        responses={200: None},
+        description="Mark message as read",
+    )
+    @action(detail=True, methods=["POST"])
+    def mark_read(self, request, pk=None):
+        message = self.get_object()
+        participant = Participant.objects.get(
+            conversation=message.conversation, user=request.user
+        )
+        participant.last_read_message = message
+        participant.save()
+        return Response(status=status.HTTP_200_OK)
