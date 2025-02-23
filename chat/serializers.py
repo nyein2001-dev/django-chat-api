@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import User
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -21,11 +22,11 @@ class RegisterSerializer(serializers.ModelSerializer):
             "settings",
         ]
         extra_kwargs = {
-            'email': {'required': True},
-            'phone': {'required': False},
-            'avatar_url': {'required': False},
-            'status': {'read_only': True},
-            'settings': {'required': False}
+            "email": {"required": True},
+            "phone": {"required": False},
+            "avatar_url": {"required": False},
+            "status": {"read_only": True},
+            "settings": {"required": False},
         }
 
     def validate(self, data):
@@ -101,3 +102,45 @@ class UserDetailSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
+
+
+class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
+    def validate(self, attrs):
+        data = super().validate(attrs)
+        data["user"] = UserDetailSerializer(self.user).data
+        return data
+
+
+class LoginSerializer(MyTokenObtainPairSerializer):
+    username_or_email = serializers.CharField(write_only=True)
+    password = serializers.CharField(write_only=True)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields.pop("username", None)
+
+    def validate(self, attrs):
+        username_or_email = attrs.get("username_or_email")
+        password = attrs.get("password")
+
+        if "@" in username_or_email:
+            user = User.objects.filter(email=username_or_email).first()
+            if user:
+                username = user.username
+            else:
+                raise serializers.ValidationError(
+                    {"username_or_email", "User not found"}
+                )
+        else:
+            username = username_or_email
+            if not User.objects.filter(username=username).exists():
+                raise serializers.ValidationError(
+                    {"username_or_email": "User not found"}
+                )
+
+        validated_attrs = {"username": username, "password": password}
+
+        return super().validate(validated_attrs)
+
+    class Meta:
+        fields = ("username_or_email", "password")

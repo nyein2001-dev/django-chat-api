@@ -5,13 +5,10 @@ from rest_framework import status, permissions
 from django.http import JsonResponse
 from django.middleware.csrf import get_token
 from drf_spectacular.utils import extend_schema, OpenApiExample
-from django.utils.decorators import method_decorator
-from django.views.decorators.csrf import csrf_exempt
 
-from chat.serializers import RegisterSerializer, UserDetailSerializer
+from chat.serializers import RegisterSerializer, UserDetailSerializer, LoginSerializer
 
 
-@method_decorator(csrf_exempt, name="dispatch")
 class RegisterView(APIView):
     permission_classes = [permissions.AllowAny]
 
@@ -32,9 +29,9 @@ class RegisterView(APIView):
                     "phone": "+1234567890",
                     "avatar_url": "https://example.com/avatar.jpg",
                     "settings": {"notifications": True, "theme": "dark"},
-                }
+                },
             )
-        ]
+        ],
     )
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
@@ -48,4 +45,19 @@ class RegisterView(APIView):
                 },
                 status=status.HTTP_201_CREATED,
             )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class LoginView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    @extend_schema(
+        request=LoginSerializer,
+        responses={200: LoginSerializer},
+        description="Login with username/email and password",
+    )
+    def post(self, request):
+        serializer = LoginSerializer(data=request.data)
+        if serializer.is_valid():
+            return Response(serializer.validated_data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
