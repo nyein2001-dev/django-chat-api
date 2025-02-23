@@ -2,14 +2,19 @@ from rest_framework.views import APIView
 from django.contrib.auth import login
 from rest_framework.response import Response
 from rest_framework import status, permissions
-from django.http import JsonResponse
-from django.middleware.csrf import get_token
 from drf_spectacular.utils import extend_schema, OpenApiExample, OpenApiTypes
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.utils import timezone
-import logging
+from rest_framework import viewsets
+from .models import User
+from rest_framework.decorators import action
 
-from chat.serializers import RegisterSerializer, UserDetailSerializer, LoginSerializer
+from chat.serializers import (
+    RegisterSerializer,
+    UserDetailSerializer,
+    LoginSerializer,
+    UserSerializer,
+)
 
 
 class RegisterView(APIView):
@@ -104,3 +109,14 @@ class LogoutView(APIView):
             return Response({"message": "Successfully logged out"})
         except Exception:
             return Response(status=status.HTTP_400_BAD_REQUEST)
+
+
+class UserViewSet(viewsets.ModelViewSet):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    @action(detail=False, methods=["GET"])
+    def me(self, request):
+        serializer = UserSerializer(request.user)
+        return Response(serializer.data)

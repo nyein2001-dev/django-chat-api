@@ -144,3 +144,19 @@ class LoginSerializer(MyTokenObtainPairSerializer):
 
     class Meta:
         fields = ("username_or_email", "password")
+
+
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = [
+            "id",
+            "username",
+            "email",
+            "first_name",
+            "last_name",
+            "avatar_url",
+            "status",
+            "last_seen_at",
+            "is_verified",
+        ]
