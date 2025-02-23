@@ -49,12 +49,3 @@ class RegisterView(APIView):
                 status=status.HTTP_201_CREATED,
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-class GetCSRFToken(APIView):
-    permission_classes = [permissions.AllowAny]
-
-    def get(self, request):
-        response = JsonResponse({"details": "CSRF cookie set"})
-        response["X-CSRFToken"] = get_token(request)
-        return response
