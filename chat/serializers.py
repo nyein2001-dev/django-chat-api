@@ -21,11 +21,11 @@ class RegisterSerializer(serializers.ModelSerializer):
             "settings",
         ]
         extra_kwargs = {
-            "email": {"required": True},
-            "phone": {"required": False},
-            "avatar_url": {"required": False},
-            "status": {"required": True},
-            "settings": {"required": False},
+            'email': {'required': True},
+            'phone': {'required': False},
+            'avatar_url': {'required': False},
+            'status': {'read_only': True},
+            'settings': {'required': False}
         }
 
     def validate(self, data):
