@@ -1,6 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
-
+from django.utils import timezone
 
 class User(AbstractUser):
     phone = models.CharField(max_length=16, unique=True, null=True)
@@ -8,13 +8,13 @@ class User(AbstractUser):
     status = models.CharField(
         max_length=20,
         choices=[
-            ("online", "Online"),
-            ("offline", "Offline"),
-            ("busy", "Busy"),
-            ("away", "Away"),
-            ("invisible", "Invisible"),
+            ('online', 'Online'),
+            ('offline', 'Offline'),
+            ('away', 'Away'),
+            ('busy', 'Busy'),
+            ('invisible', 'Invisible')
         ],
-        default="offline",
+        default='offline'
     )
     last_seen_at = models.DateTimeField(null=True)
     is_verified = models.BooleanField(default=False)
@@ -24,78 +24,72 @@ class User(AbstractUser):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        db_table = "users"
-
+        db_table = 'users'
 
 class Conversation(models.Model):
     type = models.CharField(
         max_length=20,
         choices=[
-            ("direct", "Direct"),
-            ("group", "Group"),
-            ("channel", "Channel"),
-        ],
+            ('direct', 'Direct'),
+            ('group', 'Group'),
+            ('channel', 'Channel')
+        ]
     )
-    title = models.CharField(max_length=255, null=True)
+    title = models.CharField(max_length=100, null=True)
     description = models.TextField(null=True)
     avatar_url = models.CharField(max_length=255, null=True)
     creator = models.ForeignKey(User, on_delete=models.PROTECT)
     settings = models.JSONField(null=True)
-    last_message = models.ForeignKey(
-        "Message", on_delete=models.SET_NULL, related_name="+", null=True
-    )
+    last_message = models.ForeignKey('Message', null=True, on_delete=models.SET_NULL, related_name='+')
     last_activity_at = models.DateTimeField(null=True)
     is_encrypted = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-
 class Participant(models.Model):
     conversation = models.ForeignKey(
-        Conversation, on_delete=models.CASCADE, related_name="participants"
+        Conversation, 
+        on_delete=models.CASCADE,
+        related_name='participants'
     )
     user = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name="participations"
+        User, 
+        on_delete=models.CASCADE,
+        related_name='participations'
     )
     role = models.CharField(
         max_length=20,
         choices=[
-            ("owner", "Owner"),
-            ("admin", "Admin"),
-            ("moderator", "Moderator"),
-            ("member", "Member"),
+            ('owner', 'Owner'),
+            ('admin', 'Admin'),
+            ('moderator', 'Moderator'),
+            ('member', 'Member')
         ],
-        default="member",
+        default='member'
     )
     nickname = models.CharField(max_length=50, null=True)
-    last_read_message = models.ForeignKey(
-        "Message", on_delete=models.SET_NULL, null=True
-    )
+    last_read_message = models.ForeignKey('Message', null=True, on_delete=models.SET_NULL)
     is_muted = models.BooleanField(default=False)
     mute_until = models.DateTimeField(null=True)
     joined_at = models.DateTimeField(auto_now_add=True)
     left_at = models.DateTimeField(null=True)
 
-
 class Message(models.Model):
     conversation = models.ForeignKey(Conversation, on_delete=models.CASCADE)
     sender = models.ForeignKey(User, on_delete=models.PROTECT)
-    reply_to = models.ForeignKey("self", null=True, on_delete=models.SET_NULL)
+    reply_to = models.ForeignKey('self', null=True, on_delete=models.SET_NULL)
     type = models.CharField(
         max_length=20,
         choices=[
-            ("text", "Text"),
-            ("image", "Image"),
-            ("video", "Video"),
-            ("audio", "Audio"),
-            ("file", "File"),
-            ("document", "Document"),
-            ("location", "Location"),
-            ("contact", "Contact"),
-            ("poll", "Poll"),
-            ("sticker", "Sticker"),
-            ("system", "System"),
-        ],
+            ('text', 'Text'),
+            ('image', 'Image'),
+            ('video', 'Video'),
+            ('audio', 'Audio'),
+            ('file', 'File'),
+            ('location', 'Location'),
+            ('contact', 'Contact'),
+            ('system', 'System')
+        ]
     )
     content = models.TextField()
     metadata = models.JSONField(null=True)
@@ -107,4 +101,4 @@ class Message(models.Model):
     reactions = models.JSONField(null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    deleted_at = models.DateTimeField(null=True)
+    deleted_at = models.DateTimeField(null=True) 
